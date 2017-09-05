@@ -4,6 +4,8 @@ using Icris.uServiceBus.Core.Queues;
 using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections.Concurrent;
+using System.Linq;
 
 namespace Icris.uservicebus.Tests
 {
@@ -19,18 +21,23 @@ namespace Icris.uservicebus.Tests
         {
             var queue = new FileSystemQueue<testdto>(Path.GetTempPath() + "queue");
             queue.Clear();
-            Parallel.For (0,1000, i=>
-                queue.Add(new testdto() { name = "name_" + i }));
+            Parallel.For(0, 1000, i =>
+                queue.Add(new testdto() { name = "" + i }));
 
             Assert.AreEqual(queue.Count, 1000);
-
-            Parallel.For(0,1000, i =>
-            {
-                var message = queue.Receive(60);
-                var content = message.Content();
-                message.Complete();
-            });
-
+            ConcurrentBag<int> processed = new ConcurrentBag<int>();
+            Parallel.For(0, 1000, i =>
+             {
+                 var message = queue.Receive(60);
+                 var content = message.Content();
+                 if (processed.ToList().Contains(int.Parse(content.name)))
+                 {
+                     System.Diagnostics.Debugger.Break();
+                 }
+                 processed.Add(int.Parse(content.name));
+                 message.Complete();
+             });
+            Console.WriteLine(processed);
             Assert.AreEqual(queue.Count, 0);
         }
         [TestMethod]

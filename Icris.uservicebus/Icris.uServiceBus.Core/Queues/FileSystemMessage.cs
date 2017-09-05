@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
@@ -21,6 +22,7 @@ namespace Icris.uServiceBus.Core.Queues
         int timeout;
         DateTime expiration = DateTime.Now;
         T content;
+        public bool IsValid = true;
         public FileSystemMessage(string path, int timeout)
         {
             try
@@ -28,11 +30,18 @@ namespace Icris.uServiceBus.Core.Queues
                 this.timeout = timeout;
                 this.path = path;
                 Lock();
+                Thread.Sleep(1);
+                if (!File.Exists(path))
+                {
+                    IsValid = false;
+                    return;
+                }
                 content = JsonConvert.DeserializeObject<T>(File.ReadAllText(path));
             }
             catch (Exception e)
             {
-                throw new Exception("Unable to lock the message");
+                //throw new Exception("Unable to lock the message");
+                IsValid = false;
             }
         }
         private void Lock()

@@ -124,25 +124,22 @@ namespace Icris.uServiceBus.Core.Queues
         /// <returns></returns>
         public FileSystemMessage<T> Receive(int timeout)
         {
-            lock (qlock)
-            {                
-                var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x=>x);
-                foreach(var file in files)
+
+            var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => x);
+            foreach (var file in files)
+            {
+                //Skip locked messages
+                if (File.Exists(file + ".lock") && File.GetCreationTime(file + ".lock") > DateTime.Now.AddSeconds(-timeout))
+                    continue;
+                lock (qlock)
                 {
-                    //Skip locked messages
-                    if (File.Exists(file + ".lock") && File.GetCreationTime(file+".lock") > DateTime.Now.AddSeconds(-timeout))
-                        continue;
-                    try
-                    {
-                        return new FileSystemMessage<T>(file, timeout);
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                }
-                return null;
+                    var message = new FileSystemMessage<T>(file, timeout);
+                    if (message.IsValid)
+                        return message;
+                }                
             }
+            return null;
+
         }
     }
 }
