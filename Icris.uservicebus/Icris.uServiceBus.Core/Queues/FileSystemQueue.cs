@@ -13,6 +13,7 @@ namespace Icris.uServiceBus.Core.Queues
 {
     public class FileSystemQueue<T> : System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>
     {
+        static object qlock = new object();
         string path;
         /// <summary>
         /// Create the queue in the specified directory. Each message will be serialized here.
@@ -52,38 +53,7 @@ namespace Icris.uServiceBus.Core.Queues
             //file is not locked
             return true;
         }
-        /// <summary>
-        /// Little helper tries to open a file, returns false if it fails so threads can wait on it to be free.
-        /// </summary>
-        /// <param name="file"></param>
-        /// <param name="writer"></param>
-        /// <returns></returns>
-        protected bool TryReadAndDeleteFile(string file, out string content)
-        {
-            try
-            {
-                using (var stream = File.Open(file, FileMode.Open, FileAccess.ReadWrite))
-                {
-                    content = new StreamReader(stream).ReadToEnd();                    
-                }
-                File.Delete(file);
-            }           
-            catch (Exception e)
-            {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                content = null;
-                return false;
-            }
-            finally
-            {
-            }
 
-            //file is not locked
-            return true;
-        }
         private StreamWriter GetNewMessageStream()
         {
             StreamWriter writer;
@@ -145,18 +115,26 @@ namespace Icris.uServiceBus.Core.Queues
                 return JsonConvert.DeserializeObject<T>(File.ReadAllText(first));
             }
         }
-
-        public T Receive()
+        static Random r = new Random();
+        public FileSystemMessage<T> Receive()
         {
-            string content;
-            var first = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => x).First();
-            while (!TryReadAndDeleteFile(first, out content))
-                return Receive();
-            if (content == null)
-                return Receive();
-            var obj = JsonConvert.DeserializeObject<T>(content);
-            //File.Delete(first);
-            return obj;
+            lock (qlock)
+            {
+                string content;
+                var files = Directory.EnumerateFiles(this.path, "*.uq.json");
+                var index = r.Next(files.Count() - 1);
+                var first = files.Skip(index).FirstOrDefault();
+                if (first == null)
+                    return Receive();
+                try
+                {
+                    return new FileSystemMessage<T>(first);
+                }
+                catch (Exception e)//message is locked
+                {
+                    return Receive();
+                }
+            }
         }
     }
 }

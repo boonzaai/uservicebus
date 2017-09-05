@@ -23,8 +23,12 @@ namespace Icris.uservicebus.Tests
 
             Assert.AreEqual(queue.Count, 1000);
 
-            Parallel.For(0,1000, i=>
-                queue.Receive());
+            Parallel.For(0,1000, i =>
+            {
+                var message = queue.Receive();
+                var content = message.Content();
+                message.Complete();
+            });
 
             Assert.AreEqual(queue.Count, 0);
         }

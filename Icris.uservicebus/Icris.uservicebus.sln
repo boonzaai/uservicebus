@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.10
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Icris.uservicebus.Tests", "Icris.uservicebus.Tests\Icris.uservicebus.Tests.csproj", "{7A07904B-C0A0-481F-BDA8-A73332872C23}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Icris.uServiceBus.Tests", "Icris.uservicebus.Tests\Icris.uServiceBus.Tests.csproj", "{7A07904B-C0A0-481F-BDA8-A73332872C23}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Icris.uServiceBus.Core", "Icris.uServiceBus.Core\Icris.uServiceBus.Core.csproj", "{83FFC3BB-AC44-4261-9141-F821451304DC}"
 EndProject
