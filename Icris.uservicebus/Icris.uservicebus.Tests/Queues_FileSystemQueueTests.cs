@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Icris.uServiceBus.Core.Queues;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Icris.uservicebus.Tests
 {
@@ -25,12 +26,31 @@ namespace Icris.uservicebus.Tests
 
             Parallel.For(0,1000, i =>
             {
-                var message = queue.Receive();
+                var message = queue.Receive(60);
                 var content = message.Content();
                 message.Complete();
             });
 
             Assert.AreEqual(queue.Count, 0);
+        }
+        [TestMethod]
+        public void TestReceiveTimeout()
+        {
+            var queue = new FileSystemQueue<testdto>(Path.GetTempPath() + "queue");
+            queue.Clear();
+            queue.Add(new testdto() { name = Guid.NewGuid().ToString() });
+            var message = queue.Receive(3);
+            Thread.Sleep(4000);
+            var message2 = queue.Receive(500);
+            try
+            {
+                message.RenewLock();
+            }
+            catch (Exception e)
+            {
+                Assert.AreEqual("Lock expired", e.Message);
+            }
+
         }
     }
 }

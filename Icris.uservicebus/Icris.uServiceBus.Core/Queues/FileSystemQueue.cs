@@ -79,6 +79,7 @@ namespace Icris.uServiceBus.Core.Queues
         public void Clear()
         {
             Directory.EnumerateFiles(this.path, "*.uq.json").ToList().ForEach(x => File.Delete(x));
+            Directory.EnumerateFiles(this.path, "*.uq.json.lock").ToList().ForEach(x => File.Delete(x));
         }
 
         public bool Contains(T item)
@@ -116,24 +117,31 @@ namespace Icris.uServiceBus.Core.Queues
             }
         }
         static Random r = new Random();
-        public FileSystemMessage<T> Receive()
+        /// <summary>
+        /// Receive a message from the queue with a specified timeout locking time in seconds.
+        /// </summary>
+        /// <param name="timeout"></param>
+        /// <returns></returns>
+        public FileSystemMessage<T> Receive(int timeout)
         {
             lock (qlock)
-            {
-                string content;
-                var files = Directory.EnumerateFiles(this.path, "*.uq.json");
-                var index = r.Next(files.Count() - 1);
-                var first = files.Skip(index).FirstOrDefault();
-                if (first == null)
-                    return Receive();
-                try
+            {                
+                var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x=>x);
+                foreach(var file in files)
                 {
-                    return new FileSystemMessage<T>(first);
+                    //Skip locked messages
+                    if (File.Exists(file + ".lock") && File.GetCreationTime(file+".lock") > DateTime.Now.AddSeconds(-timeout))
+                        continue;
+                    try
+                    {
+                        return new FileSystemMessage<T>(file, timeout);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                 }
-                catch (Exception e)//message is locked
-                {
-                    return Receive();
-                }
+                return null;
             }
         }
     }
