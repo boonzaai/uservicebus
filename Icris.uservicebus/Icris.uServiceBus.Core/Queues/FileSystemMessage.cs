@@ -48,7 +48,7 @@ namespace Icris.uServiceBus.Core.Queues
         {
             if (File.Exists(path + ".lock") && File.GetCreationTime(path + ".lock") > DateTime.Now.AddSeconds(-timeout))
                 throw new Exception("Unable to aqcuire lock");
-            this.fileLock = SimpleFileLock.Create(path + ".lock", TimeSpan.FromSeconds(timeout));
+            File.CreateText(path + ".lock").Close();
             this.expiration = DateTime.Now.AddSeconds(timeout);
         }
         /// <summary>
@@ -61,7 +61,7 @@ namespace Icris.uServiceBus.Core.Queues
                 throw new Exception("Lock expired");
             }
             File.Delete(this.path);
-            fileLock.ReleaseLock();
+            File.Delete(path + ".lock");
         }
         /// <summary>
         /// Renew the lock on this message for the specified timeout
@@ -75,7 +75,7 @@ namespace Icris.uServiceBus.Core.Queues
         /// </summary>
         public void Release()
         {
-            fileLock.ReleaseLock();
+            File.Delete(path + ".lock");
         }
         /// <summary>
         /// Retreive the contained object in this message.

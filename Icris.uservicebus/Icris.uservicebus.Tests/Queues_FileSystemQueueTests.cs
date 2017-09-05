@@ -46,8 +46,8 @@ namespace Icris.uservicebus.Tests
             var queue = new FileSystemQueue<testdto>(Path.GetTempPath() + "queue");
             queue.Clear();
             queue.Add(new testdto() { name = Guid.NewGuid().ToString() });
-            var message = queue.Receive(3);
-            Thread.Sleep(4000);
+            var message = queue.Receive(30);
+            //Thread.Sleep(4000);
             var message2 = queue.Receive(500);
             try
             {
