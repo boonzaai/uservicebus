@@ -16,10 +16,11 @@ namespace Icris.uServiceBus.Core.Queues
     /// A thread-safe, disk-persisted message queue.
     /// </summary>
     /// <typeparam name="T">Json serializable object type stored in this queue.</typeparam>
-    public class FileSystemQueue<T>
+    public class FileSystemQueue<T> : IQueue<T>
     {
         object qlock = new object();
         string path;
+        List<Action<IMessage<T>>> subscribers = new List<Action<IMessage<T>>>();
         /// <summary>
         /// Create the queue in the specified directory. Each message will be serialized here.
         /// </summary>
@@ -76,14 +77,16 @@ namespace Icris.uServiceBus.Core.Queues
 
         /// <summary>
         /// Add a message to the queue.
+        /// Subscribers will be notified.
         /// </summary>
         /// <param name="item">The object to wrap in the message.</param>
-        public void Add(T item)
+        public void Send(T item)
         {
             using (var w = GetNewMessageStream())
             {
                 w.Write(JObject.FromObject(item).ToString());
                 w.Flush();
+                subscribers.ForEach(x => x(Receive()));
             }
         }
 
@@ -95,7 +98,7 @@ namespace Icris.uServiceBus.Core.Queues
             Directory.EnumerateFiles(this.path, "*.uq.json").ToList().ForEach(x => File.Delete(x));
             Directory.EnumerateFiles(this.path, "*.uq.json.lock").ToList().ForEach(x => File.Delete(x));
         }
-  
+
 
         /// <summary>
         /// Receive a message from the queue.
@@ -115,10 +118,15 @@ namespace Icris.uServiceBus.Core.Queues
                     var message = new FileSystemMessage<T>(file);
                     if (message.IsValid)
                         return message;
-                }                
+                }
             }
             return null;
 
+        }
+
+        public void Subscribe(Action<IMessage<T>> notification)
+        {
+            subscribers.Add(notification);
         }
     }
 }
