@@ -52,10 +52,12 @@
     <Compile Include="IPublisher.cs" />
     <Compile Include="IPubSubBroker.cs" />
     <Compile Include="ISubscriber.cs" />
+    <Compile Include="Messages\MemoryMessage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Queues\FileSystemQueue.cs" />
     <Compile Include="Messages\FileSystemMessage.cs" />
     <Compile Include="Queues\IQueue.cs" />
+    <Compile Include="Queues\MemoryQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
