@@ -13,7 +13,7 @@ namespace Icris.uServiceBus.Core.Queues
 {
     public class FileSystemQueue<T> : System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>
     {
-        static object qlock = new object();
+        object qlock = new object();
         string path;
         /// <summary>
         /// Create the queue in the specified directory. Each message will be serialized here.
@@ -57,7 +57,7 @@ namespace Icris.uServiceBus.Core.Queues
         private StreamWriter GetNewMessageStream()
         {
             StreamWriter writer;
-            while (!TryToOpenFile(this.path + "\\" + DateTime.Now.Ticks + ".uq.json", out writer)) ;
+            while (!TryToOpenFile(this.path + "\\" + Guid.NewGuid().ToString() + ".uq.json", out writer)) ;
             return writer;
 
         }
@@ -107,33 +107,22 @@ namespace Icris.uServiceBus.Core.Queues
             throw new NotImplementedException();
         }
 
-        public T Peek()
-        {
-            using (var t = new TransactionScope())
-            {
-                var first = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => x).First();
-                t.Complete();
-                return JsonConvert.DeserializeObject<T>(File.ReadAllText(first));
-            }
-        }
-        static Random r = new Random();
         /// <summary>
-        /// Receive a message from the queue with a specified timeout locking time in seconds.
+        /// Receive a message from the queue.
         /// </summary>
-        /// <param name="timeout"></param>
         /// <returns></returns>
-        public FileSystemMessage<T> Receive(int timeout)
+        public FileSystemMessage<T> Receive()
         {
-
-            var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => x);
+            var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => Guid.NewGuid());
             foreach (var file in files)
             {
                 //Skip locked messages
-                if (File.Exists(file + ".lock") && File.GetCreationTime(file + ".lock") > DateTime.Now.AddSeconds(-timeout))
+                if (File.Exists(file + ".lock") && File.GetCreationTime(file + ".lock") > DateTime.Now.AddSeconds(-300))
                     continue;
+                //We'll need locking to assure we're atomically fetching this message and no-one interferes.
                 lock (qlock)
                 {
-                    var message = new FileSystemMessage<T>(file, timeout);
+                    var message = new FileSystemMessage<T>(file);
                     if (message.IsValid)
                         return message;
                 }                

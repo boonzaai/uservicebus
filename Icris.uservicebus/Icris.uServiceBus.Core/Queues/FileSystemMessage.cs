@@ -20,14 +20,20 @@ namespace Icris.uServiceBus.Core.Queues
         SimpleFileLock fileLock;
         string path;
         int timeout;
-        DateTime expiration = DateTime.Now;
+
         T content;
         public bool IsValid = true;
-        public FileSystemMessage(string path, int timeout)
+        DateTime lockTime = DateTime.Now;
+
+        public FileSystemMessage(string path)
         {
             try
             {
-                this.timeout = timeout;
+                if (!File.Exists(path))
+                {
+                    IsValid = false;
+                    return;
+                }
                 this.path = path;
                 Lock();
                 Thread.Sleep(1);
@@ -46,22 +52,24 @@ namespace Icris.uServiceBus.Core.Queues
         }
         private void Lock()
         {
-            if (File.Exists(path + ".lock") && File.GetCreationTime(path + ".lock") > DateTime.Now.AddSeconds(-timeout))
+            if (File.Exists(path + ".lock") &&                                              //The file was locked by *someone*
+                File.GetCreationTime(path + ".lock") > DateTime.Now.AddSeconds(-300) &&     //The lock is still valid
+                File.GetCreationTime(path + ".lock") != this.lockTime)                      //The lock is not mine
                 throw new Exception("Unable to aqcuire lock");
-            File.CreateText(path + ".lock").Close();
-            this.expiration = DateTime.Now.AddSeconds(timeout);
+            using (var f = File.CreateText(path + ".lock"))
+                this.lockTime = File.GetCreationTime(path + ".lock");
         }
         /// <summary>
         /// Complete this message, remove from queue.
         /// </summary>
         public void Complete()
         {
-            if (DateTime.Now >= expiration)
+            if (File.GetCreationTime(this.path + ".lock") <= DateTime.Now.AddSeconds(-300))
             {
                 throw new Exception("Lock expired");
             }
             File.Delete(this.path);
-            File.Delete(path + ".lock");
+            File.Delete(this.path + ".lock");
         }
         /// <summary>
         /// Renew the lock on this message for the specified timeout

@@ -21,23 +21,16 @@ namespace Icris.uservicebus.Tests
         {
             var queue = new FileSystemQueue<testdto>(Path.GetTempPath() + "queue");
             queue.Clear();
-            Parallel.For(0, 1000, i =>
+            Parallel.For(0, 10000, i =>
                 queue.Add(new testdto() { name = "" + i }));
 
-            Assert.AreEqual(queue.Count, 1000);
-            ConcurrentBag<int> processed = new ConcurrentBag<int>();
-            Parallel.For(0, 1000, i =>
+            Assert.AreEqual(queue.Count, 10000);
+            Parallel.For(0, 10000, new ParallelOptions() { MaxDegreeOfParallelism = 1 }, i =>
              {
-                 var message = queue.Receive(60);
+                 var message = queue.Receive();
                  var content = message.Content();
-                 if (processed.ToList().Contains(int.Parse(content.name)))
-                 {
-                     System.Diagnostics.Debugger.Break();
-                 }
-                 processed.Add(int.Parse(content.name));
                  message.Complete();
              });
-            Console.WriteLine(processed);
             Assert.AreEqual(queue.Count, 0);
         }
         [TestMethod]
@@ -46,9 +39,10 @@ namespace Icris.uservicebus.Tests
             var queue = new FileSystemQueue<testdto>(Path.GetTempPath() + "queue");
             queue.Clear();
             queue.Add(new testdto() { name = Guid.NewGuid().ToString() });
-            var message = queue.Receive(30);
+            var message = queue.Receive();
             //Thread.Sleep(4000);
-            var message2 = queue.Receive(500);
+            var message2 = queue.Receive();
+            Assert.AreEqual(null, message2);
             try
             {
                 message.RenewLock();
