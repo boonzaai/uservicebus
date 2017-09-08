@@ -48,12 +48,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Brokers\InMemoryBroker.cs" />
+    <Compile Include="Messages\IMessage.cs" />
     <Compile Include="IPublisher.cs" />
     <Compile Include="IPubSubBroker.cs" />
     <Compile Include="ISubscriber.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Queues\FileSystemQueue.cs" />
-    <Compile Include="Queues\FileSystemMessage.cs" />
+    <Compile Include="Messages\FileSystemMessage.cs" />
+    <Compile Include="Queues\IQueue.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

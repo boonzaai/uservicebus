@@ -8,10 +8,15 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 using Newtonsoft.Json;
 using System.Transactions;
+using Icris.uServiceBus.Core.Messages;
 
 namespace Icris.uServiceBus.Core.Queues
 {
-    public class FileSystemQueue<T> : System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>
+    /// <summary>
+    /// A thread-safe, disk-persisted message queue.
+    /// </summary>
+    /// <typeparam name="T">Json serializable object type stored in this queue.</typeparam>
+    public class FileSystemQueue<T>
     {
         object qlock = new object();
         string path;
@@ -62,11 +67,17 @@ namespace Icris.uServiceBus.Core.Queues
 
         }
 
+        /// <summary>
+        /// Un-processed and processing messages in the queue.
+        /// </summary>
         public int Count => Directory.EnumerateFiles(this.path, "*.uq.json").Count();
 
         public bool IsReadOnly => false;
 
-
+        /// <summary>
+        /// Add a message to the queue.
+        /// </summary>
+        /// <param name="item">The object to wrap in the message.</param>
         public void Add(T item)
         {
             using (var w = GetNewMessageStream())
@@ -76,42 +87,21 @@ namespace Icris.uServiceBus.Core.Queues
             }
         }
 
+        /// <summary>
+        /// Clears the queue of all its messages (deletes from disk)
+        /// </summary>
         public void Clear()
         {
             Directory.EnumerateFiles(this.path, "*.uq.json").ToList().ForEach(x => File.Delete(x));
             Directory.EnumerateFiles(this.path, "*.uq.json.lock").ToList().ForEach(x => File.Delete(x));
         }
-
-        public bool Contains(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void CopyTo(T[] array, int arrayIndex)
-        {
-            throw new NotImplementedException();
-        }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool Remove(T item)
-        {
-            throw new NotImplementedException();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            throw new NotImplementedException();
-        }
+  
 
         /// <summary>
         /// Receive a message from the queue.
         /// </summary>
         /// <returns></returns>
-        public FileSystemMessage<T> Receive()
+        public IMessage<T> Receive()
         {
             var files = Directory.EnumerateFiles(this.path, "*.uq.json").OrderBy(x => Guid.NewGuid());
             foreach (var file in files)

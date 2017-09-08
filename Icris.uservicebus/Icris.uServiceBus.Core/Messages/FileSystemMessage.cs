@@ -9,18 +9,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 
-namespace Icris.uServiceBus.Core.Queues
+namespace Icris.uServiceBus.Core.Messages
 {
 
-
-    public class FileSystemMessage<T>
+    public class FileSystemMessage<T> : IMessage<T>
     {
-        static object creationlock = new object();
-
-        SimpleFileLock fileLock;
         string path;
-        int timeout;
-
         T content;
         public bool IsValid = true;
         DateTime lockTime = DateTime.Now;
